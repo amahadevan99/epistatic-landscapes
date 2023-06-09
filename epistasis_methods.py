@@ -234,8 +234,8 @@ class RandomEvo_Exp:
         
         rho_func = np.sqrt((1-self.rho_list**2)/2)
         random_part = sample_truncated(rho_func*self.coeff_list,-np.dot(mu_par,self.coeff_list))
-        s_child = self.coeff_list*(mu_par + rho_func*random_part)
-        assert np.sum(s_child)>=0
+        s_child = mu_par + rho_func*random_part
+        assert np.dot(self.coeff_list,s_child)>=0
         mu_child = mu_par - (1-self.rho_list)*s_child
         
         # add node to tree
