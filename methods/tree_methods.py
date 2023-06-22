@@ -1,5 +1,9 @@
 import numpy as np
 
+# get index of node as integer, given format of tree (string)
+def idx(x):
+    return int(x.split('.')[0])
+    
 class Tree:
     def __init__(self):
         # indexes nodes by string of form index.epoch
