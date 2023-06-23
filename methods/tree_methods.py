@@ -11,6 +11,7 @@ class Tree:
         self.dist_dict = {} # distance to parent for newick (not the same as mutational distance)
         self.mut_dist_dict = {} # mutational distance to parent
         self.nodes = [] # does not include root
+        self.lifetime_dict = {}
     
     def __len__(self):
         return len(self.nodes)
@@ -69,12 +70,18 @@ class Tree:
                 inv_map[v].append(k)
         return inv_map
     
-    def get_full_newick(self,mutations=False):
-        child_dict = self.get_child_dict(self.par_dict)
-        if mutations:
-            branch_lengths = self.mut_dist_dict
+    def get_full_newick(self,par_dict=None,dist_dict=None,mutations=False):
+        if par_dict is None:
+            child_dict = self.get_child_dict(self.par_dict)
         else:
-            branch_lengths = self.dist_dict
+            child_dict = self.get_child_dict(par_dict)
+        if dist_dict is None:
+            if mutations:
+                branch_lengths = self.mut_dist_dict
+            else:
+                branch_lengths = self.dist_dict
+        else:
+            branch_lengths = dist_dict
 
         def generate_newick(node):
             if node in child_dict:
@@ -143,3 +150,49 @@ class Tree:
         
         final_child_dict = self.get_child_dict(final_parent_dict)
         return final_child_dict,final_length_dict,final_parent_dict
+
+
+    # computes the number of generations for which each fitness class was populated
+    def compute_lifetime_dict(self):
+        for n in self.nodes:
+            dd = idx(n)
+            if dd not in self.lifetime_dict:
+                self.lifetime_dict[dd] = self.dist_dict[n]
+            else:
+                self.lifetime_dict[dd] += self.dist_dict[n]
+
+    def get_reduced_newick(self,newick_reduction,mutations=False):
+        if mutations:
+            branch_lengths = self.mut_dist_dict
+        else:
+            branch_lengths = self.dist_dict
+
+        if self.lifetime_dict=={}:
+            self.compute_lifetime_dict()
+        par_dict_reduced = {}
+        dist_dict_reduced = {'0.0':0}
+
+        # only includes fitness classes which survived more than specified number of generations
+        # if a node didn't live that long, reconnects back until parent lives long enough or root reached
+        for s in self.par_dict:
+            if self.lifetime_dict[idx(s)]<newick_reduction:
+                continue
+            par_dict_reduced[s] = self.par_dict[s]
+            dist_dict_reduced[s] = branch_lengths[s]
+            while not(par_dict_reduced[s]=='root') and self.lifetime_dict[idx(par_dict_reduced[s])]<newick_reduction:
+                dist_dict_reduced[s] += branch_lengths[par_dict_reduced[s]]
+                par_dict_reduced[s] = self.par_dict[par_dict_reduced[s]]
+
+        # get rid of intermediate nodes which do not branch
+        pointer_child_dict = self.get_child_dict(par_dict_reduced)
+        pr_keys = list(par_dict_reduced.keys())
+        for s in pr_keys:
+            if s in pointer_child_dict and len(pointer_child_dict[s])==1 and not(s=='root'):
+                dist_dict_reduced[pointer_child_dict[s][0]] += dist_dict_reduced[s]
+                par_dict_reduced[pointer_child_dict[s][0]] = par_dict_reduced[s]
+                par_dict_reduced.pop(s)
+                dist_dict_reduced.pop(s)
+
+        new = self.get_full_newick(par_dict=par_dict_reduced,dist_dict=dist_dict_reduced)
+        return new
+
