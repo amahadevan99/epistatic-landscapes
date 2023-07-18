@@ -12,8 +12,8 @@ def idx(x):
 
 # runs evolution where D(l) is a sum of exponentials: therefore does not store entire covariance matrix
 # still assumes treelike limit
-# resolves the population at the level of fitness classes
-class RandomEvo_Exp:
+# resolves the population at the level of genotypes
+class RandomEvoExp:
     # stores the trajectory in a tree, where each node is associated with a mu and an s (in a tuple)
     def __init__(self,N,U,coeff_list,corr_len_list,additive=1,seed=None):
         if seed is None:
@@ -25,7 +25,7 @@ class RandomEvo_Exp:
         self.N = N # population size
         self.U = U # overall mutation rate (per generation)
         self.additive = additive # coefficient of additive piece
-        self.tree = tm.Tree() # each node of the tree is a fitness class, with a mu, and the s from its parent to it
+        self.tree = tm.Tree() # each node of the tree is a genotype, with a mu, and the s from its parent to it
         self.coeff_list = coeff_list # list of coefficients for each exponential
         self.corr_len_list = corr_len_list # list of correlation lengths for each exponential
         assert len(coeff_list)==len(corr_len_list)
@@ -35,25 +35,25 @@ class RandomEvo_Exp:
         self.K = len(coeff_list) # number of exponentials to track
 
         self.labels = {} # stores ([mu_1,mu_2,..],[s_1,s_2,..]) for each node
-        self.subpop = {} # stores number of individuals in each fitness class
+        self.subpop = {} # stores number of individuals in each genotype
         self.fitness = {}
         
         self.tree.add_node('0.0','root') # parents are denoted by index.epoch
         self.labels['0.0'] = (np.zeros(self.K),np.zeros(self.K))
         self.subpop['0.0'] = N
         self.fitness['0.0'] = 0
-        self.active_nodes = ['0.0'] # list of fitness classes which are populated
+        self.active_nodes = ['0.0'] # list of genotypes which are populated
 
-        self.count = 0 # number of fitness classes instantiated
+        self.count = 0 # number of genotypes instantiated
         self.gen = 0 # generation number of evolution
     
-    # grows all nodes in the tree corresponding to populated fitness classes
+    # grows all nodes in the tree corresponding to populated genotypes
     def grow_tree(self):
         for x in self.active_nodes:
             self.tree.dist_dict[x]+=1
 
-    # makes k new fitness classes, descended from a specified parent fitness class
-    def new_fitness_classes(self,par,k):
+    # makes k new genotypes, descended from a specified parent genotype
+    def new_genotypes(self,par,k):
         if k==0:return
         tree = self.tree
         mu_par = self.labels[par][0]
@@ -97,7 +97,7 @@ class RandomEvo_Exp:
 
         for kk,an in enumerate(active_nodes.copy()): # since active_nodes changes during iteration
             self.subpop[an] = actual_offspring[kk] - num_muts[kk]
-            self.new_fitness_classes(an,num_muts[kk])
+            self.new_genotypes(an,num_muts[kk])
 
         for x in active_nodes:
             if self.subpop[x]==0:
@@ -106,7 +106,7 @@ class RandomEvo_Exp:
     # runs evolution for desired number of generations
     def run_evo(self,num_steps):
         self.s_dist_traj = [] # mean fitness of population over evolution
-        self.num_active_classes = [] # number of populated fitness classes over evolution
+        self.num_active_classes = [] # number of populated genotypes over evolution
         self.mean_fitness = []
         for i in range(num_steps):
             self.step_generation()

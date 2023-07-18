@@ -152,7 +152,7 @@ class Tree:
         return final_child_dict,final_length_dict,final_parent_dict
 
 
-    # computes the number of generations for which each fitness class was populated
+    # computes the number of generations for which each genotype was populated
     def compute_lifetime_dict(self):
         for n in self.nodes:
             dd = idx(n)
@@ -172,7 +172,7 @@ class Tree:
         par_dict_reduced = {}
         dist_dict_reduced = {'0.0':0}
 
-        # only includes fitness classes which survived more than specified number of generations
+        # only includes genotypees which survived more than specified number of generations
         # if a node didn't live that long, reconnects back until parent lives long enough or root reached
         for s in self.par_dict:
             if self.lifetime_dict[idx(s)]<newick_reduction:
